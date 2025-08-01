@@ -126,7 +126,7 @@ jobs:
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}" \
               -e AWS_REGION=ap-northeast-1 \
               -e S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME }}" \
-              -e S3_KEY=data/perfume.xlsx \
+              -e S3_KEY="${{ secrets.AWS_S3_BUCKET_KEY }}" \
               --memory=1g \
               --cpus=1.0 \
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}

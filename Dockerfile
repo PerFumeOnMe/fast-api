@@ -43,6 +43,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH="/app"
 
+# HuggingFace 캐시 디렉토리 설정
+ENV TRANSFORMERS_CACHE=/tmp/huggingface
+RUN mkdir -p /tmp/huggingface && chmod -R 777 /tmp/huggingface
+
+
 # 런타임에 필요한 최소 시스템 패키지만 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
