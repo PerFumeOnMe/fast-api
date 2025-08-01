@@ -6,11 +6,11 @@ from app.generator import generate_scenario_sync
 from app.recommender_tf_idf import PerfumeRecommender
 from app.recommender_sbert import SBERTPerfumeRecommender
 from app.recommender_hybrid import HybridPerfumeRecommender
-from app.config import EXCEL_PATH
+from app.config import settings
 
-# 글로벌 객체 초기화 (한 번만 로딩)
-tfidf = PerfumeRecommender(EXCEL_PATH)
-sbert = SBERTPerfumeRecommender(EXCEL_PATH)
+# 글로벌 객체 초기화 (S3에서 로딩)
+tfidf = PerfumeRecommender()
+sbert = SBERTPerfumeRecommender()
 hybrid = HybridPerfumeRecommender(tfidf, sbert)
 
 async def recommend_full(
@@ -41,7 +41,7 @@ async def recommend_full(
     with ThreadPoolExecutor(max_workers=2) as executor:
         # 1. GPT 시나리오 생성 (I/O 바운드)
         scenario_future = loop.run_in_executor(
-            executor, generate_scenario_sync, keywords
+            executor, generate_scenario_sync, keywords, settings.OPENAI_API_KEY
         )
         
         # 2. 하이브리드 추천 (CPU 바운드)

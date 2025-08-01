@@ -1,7 +1,21 @@
 # app/config.py
+import os
+from dotenv import load_dotenv
 
-# 파일 경로
-EXCEL_PATH = "data/perfume.xlsx"
+# .env 로드 (로컬환경에서만 사용)
+load_dotenv()
+class Settings:
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+
+settings = Settings()   
+
+
+S3_BUCKET = os.getenv("S3_BUCKET", "umc-perfume-bucket")
+S3_KEY = os.getenv("S3_KEY", "data/perfume.xlsx")
+
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
 
 # 추천 기본값
 DEFAULT_TOP_N = 3

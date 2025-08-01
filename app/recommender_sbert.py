@@ -1,16 +1,20 @@
 # recommender_sbert.py
 import pandas as pd
 import numpy as np
-from app.utils import safe_str
+from app.utils import safe_str, load_excel_from_s3
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-
-from app.config import SBERT_MODEL_NAME, DEFAULT_TOP_N
+from app.config import SBERT_MODEL_NAME, DEFAULT_TOP_N, S3_BUCKET, S3_KEY
 
 
 class SBERTPerfumeRecommender:
-    def __init__(self, excel_path: str):
-        self.df = pd.read_excel(excel_path, sheet_name="향수정보")
+    _cache = None  # 클래스 캐싱
+
+    def __init__(self, excel_path: str = None):
+        # S3에서 로드 (캐싱)
+        if SBERTPerfumeRecommender._cache is None:
+            SBERTPerfumeRecommender._cache = load_excel_from_s3(S3_BUCKET, S3_KEY)
+        self.df = SBERTPerfumeRecommender._cache
         self.df = self.df.dropna(subset=["향수이름", "향수 키워드"])
         self.model = SentenceTransformer(SBERT_MODEL_NAME)
 

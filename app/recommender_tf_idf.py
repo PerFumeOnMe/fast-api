@@ -3,7 +3,8 @@ import pandas as pd
 from app.utils import safe_str
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
+from app.utils import load_excel_from_s3
+from app.config import S3_BUCKET, S3_KEY
 from app.config import (
     TFIDF_NGRAM_RANGE,
     TFIDF_MAX_FEATURES,
@@ -11,8 +12,13 @@ from app.config import (
 
 
 class PerfumeRecommender:
-    def __init__(self, excel_path: str):
-        self.df = pd.read_excel(excel_path, sheet_name="향수정보")
+    _cache = None  # 캐싱: 한 번만 로드
+
+    def __init__(self, excel_path: str = None):
+        if PerfumeRecommender._cache is None:
+            # S3에서 로드
+            PerfumeRecommender._cache = load_excel_from_s3(S3_BUCKET, S3_KEY)
+        self.df = PerfumeRecommender._cache
         self.df = self.df.dropna(subset=["향수이름", "향수 키워드"])
         self._prepare_documents()
 

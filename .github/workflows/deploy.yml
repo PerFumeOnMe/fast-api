@@ -31,33 +31,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Docker Image Build with Cache
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: false
-          tags: chanee29/perfume-recommender:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          load: true
-
       - name: Docker login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker Hub Push with Cache
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: chanee29/perfume-recommender:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build and Push Docker Image
+        run: |
+          echo "🏗️ Docker 이미지 빌드 및 푸시..."
+          docker build -t chanee29/perfume-recommender:latest .
+          docker push chanee29/perfume-recommender:latest
 
       - name: Get GitHub IP
         id: ip
@@ -101,6 +85,11 @@ jobs:
               --network bridge \
               -p 8000:8000 \
               -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_S3_ACCESS_KEY_ID }} \
+              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_S3_SECRET_ACCESS_KEY }} \
+              -e AWS_REGION=ap-northeast-1 \
+              -e S3_BUCKET=${{ secrets.AWS_S3_BUCKET_NAME }} \
+              -e S3_KEY=data/perfume.xlsx \
               --restart unless-stopped \
               chanee29/perfume-recommender
             

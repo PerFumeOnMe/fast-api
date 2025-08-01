@@ -19,9 +19,9 @@ def _create_prompt(keywords: list[str]) -> str:
         f"사람들 속에 섞여 있지만, 뚜렷한 개성과 고요한 존재감이 느껴져요."
     )
 
-def generate_scenario_sync(keywords: list[str]) -> str:
+def generate_scenario_sync(keywords: list[str], api_key: str) -> str:
     """동기 버전 (ThreadPoolExecutor에서 사용)"""
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key=api_key)
     prompt = _create_prompt(keywords)
     
     try:
