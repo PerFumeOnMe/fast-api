@@ -104,6 +104,10 @@ jobs:
             echo "🧹 기존 Docker 리소스 정리 중..."
             sudo docker system prune -a -f || true
             sudo docker volume prune -f || true
+
+            # 네트워크 확인 및 재생성
+            echo "🔧 네트워크 생성 (없으면 새로 생성)"
+            sudo docker network create perfume-network || true
             
             # 기존 컨테이너 중지 및 제거
             echo "🔄 기존 FastAPI 컨테이너 중지 및 제거..."
