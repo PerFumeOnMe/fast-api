@@ -118,7 +118,7 @@ jobs:
             echo "🚀 FastAPI 컨테이너 실행 중..."
             sudo docker run -d \
               --name perfume-recommender-container \
-              --network bridge \
+              --network perfume-network \
               --restart unless-stopped \
               -p 8000:8000 \
               -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
