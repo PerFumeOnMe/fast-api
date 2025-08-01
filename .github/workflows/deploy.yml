@@ -31,8 +31,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Docker Image Build
-        run: docker build -t chanee29/perfume-recommender .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Docker Image Build with Cache
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          tags: chanee29/perfume-recommender:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
 
       - name: Docker login
         uses: docker/login-action@v2
@@ -40,8 +50,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Docker Hub Push
-        run: docker push chanee29/perfume-recommender
+      - name: Docker Hub Push with Cache
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: chanee29/perfume-recommender:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Get GitHub IP
         id: ip
