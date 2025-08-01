@@ -17,7 +17,8 @@ scikit-learn==1.3.2
 torch==2.4.1+cpu
 
 # NLP 및 임베딩
-sentence-transformers==2.2.2
+sentence-transformers==3.0.1
+huggingface_hub==0.23.4
 
 # 외부 API 및 클라우드
 openai>=1.0.0
