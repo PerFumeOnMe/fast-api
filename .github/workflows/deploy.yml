@@ -1,48 +1,73 @@
-name: PerfumeOnMe FastAPI CI/CD
+name: PerfumeOnMe FastAPI CI/CD (CPU 최적화)
 
 on:
   push:
     branches: [ "main", "develop" ]
+  workflow_dispatch:  # 수동 실행 지원
+
+env:
+  DOCKER_IMAGE: chanee29/perfume-recommender
+  DOCKER_TAG: latest
 
 jobs:
-  deploy:
+  # =============================================================================
+  # 빌드 & 푸시 Job (최적화된 멀티스테이지 빌드)
+  # =============================================================================
+  build-and-push:
     runs-on: ubuntu-latest
-
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+      # Docker Buildx 설정 (고급 빌드 기능)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # 의존성 캐시 최적화
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Docker login
-        uses: docker/login-action@v2
+      # Docker Hub 로그인
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
-        run: |
-          echo "🏗️ Docker 이미지 빌드 및 푸시..."
-          docker build -t chanee29/perfume-recommender:latest .
-          docker push chanee29/perfume-recommender:latest
+      # Docker 레이어 캐싱 설정
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
+      # 멀티스테이지 Docker 빌드 & 푸시
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          platforms: linux/amd64  # CPU 전용
+          
+      # 캐시 업데이트
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # =============================================================================
+  # 배포 Job (EC2 디스크 공간 관리 포함)
+  # =============================================================================
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
       - name: Get GitHub IP
         id: ip
         uses: haythem/public-ip@v1.2
@@ -54,81 +79,107 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_PASSWORD }}
           aws-region: ap-northeast-1
 
-      - name: Add GitHub IP to AWS
+      - name: Add GitHub IP to AWS Security Group
         run: |
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
 
-      - name: AWS EC2 Connection and Deploy
+      - name: Deploy to EC2 (CPU 최적화)
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: ${{ secrets.EC2_SSH_PORT }}
-          timeout: 500s
+          timeout: 600s
           script: |
-            echo "🚀 FastAPI 배포 시작..."
+            echo "🚀 PerfumeOnMe FastAPI 배포 시작 (CPU 최적화 버전)..."
+            echo "=================================================="
             
-            # 기존 FastAPI 컨테이너 중지 및 삭제
+            # 시스템 정보 확인
+            echo "💻 시스템 리소스 확인:"
+            df -h
+            free -h
+            
+            # 🧹 Docker 시스템 정리 (디스크 공간 확보)
+            echo "🧹 기존 Docker 리소스 정리 중..."
+            sudo docker system prune -a -f || true
+            sudo docker volume prune -f || true
+            
+            # 기존 컨테이너 중지 및 제거
+            echo "🔄 기존 FastAPI 컨테이너 중지 및 제거..."
             sudo docker stop perfume-recommender-container || true
             sudo docker rm perfume-recommender-container || true
-            sudo docker rmi chanee29/perfume-recommender || true
             
-            # 새 이미지 가져오기
-            sudo docker pull chanee29/perfume-recommender
+            # 최신 이미지 Pull (CPU 최적화 버전)
+            echo "📥 최신 Docker 이미지 다운로드 중..."
+            sudo docker pull ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
             
+            # 컨테이너 실행 (CPU 최적화 설정)
             echo "🚀 FastAPI 컨테이너 실행 중..."
-            
-            # FastAPI 컨테이너 실행 (Spring Boot와 동일한 네트워크에서 실행)
             sudo docker run -d \
               --name perfume-recommender-container \
               --network bridge \
-              -p 8000:8000 \
-              -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_S3_ACCESS_KEY_ID }} \
-              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_S3_SECRET_ACCESS_KEY }} \
-              -e AWS_REGION=ap-northeast-1 \
-              -e S3_BUCKET=${{ secrets.AWS_S3_BUCKET_NAME }} \
-              -e S3_KEY=data/perfume.xlsx \
               --restart unless-stopped \
-              chanee29/perfume-recommender
+              -p 8000:8000 \
+              -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+              -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_S3_ACCESS_KEY_ID }}" \
+              -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}" \
+              -e AWS_REGION=ap-northeast-1 \
+              -e S3_BUCKET="${{ secrets.AWS_S3_BUCKET_NAME }}" \
+              -e S3_KEY=data/perfume.xlsx \
+              --memory=1g \
+              --cpus=1.0 \
+              ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            
+            # 컨테이너 시작 대기 (CPU 버전은 초기화 시간이 더 짧음)
+            echo "⏳ 컨테이너 초기화 대기 중... (CPU 최적화로 빠른 시작)"
+            sleep 30
             
             # 컨테이너 상태 확인
-            echo "🔍 컨테이너 상태 확인 중..."
-            sleep 15
-            
             if [ "$(sudo docker ps -q -f name=perfume-recommender-container)" ]; then
               echo "✅ FastAPI 컨테이너가 성공적으로 실행되었습니다!"
               
-              # 헬스체크
-              echo "🩺 API 헬스체크 중..."
-              sleep 10
-              
-              # Docker 네트워크에서 헬스체크
-              if sudo docker exec perfume-recommender-container curl -f http://localhost:8000/docs > /dev/null 2>&1; then
-                echo "✅ FastAPI가 정상적으로 응답하고 있습니다!"
-                echo "📋 API 문서: http://${{ secrets.EC2_HOST }}:8000/docs"
-              else
-                echo "⚠️  API 응답 확인 실패. 로그를 확인하세요."
-                echo "📋 로그 확인: sudo docker logs perfume-recommender-container"
-              fi
-              
               # 컨테이너 정보 출력
-              echo "📊 실행 중인 컨테이너:"
-              sudo docker ps --filter name=perfume-recommender-container --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+              echo "📊 컨테이너 상태:"
+              sudo docker ps --filter name=perfume-recommender-container --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Size}}"
+              
+              # 컨테이너 리소스 사용량 확인
+              echo "📈 리소스 사용량:"
+              sudo docker stats perfume-recommender-container --no-stream
+              
+              # API 헬스체크 (CPU 버전에 맞게 조정)
+              echo "🩺 API 헬스체크 중... (최대 60초 대기)"
+              for i in {1..12}; do
+                if sudo docker exec perfume-recommender-container curl -f http://localhost:8000/docs > /dev/null 2>&1; then
+                  echo "✅ FastAPI가 정상적으로 응답하고 있습니다!"
+                  echo "📋 API 문서: http://${{ secrets.EC2_HOST }}:8000/docs"
+                  echo "🔗 추천 API: http://${{ secrets.EC2_HOST }}:8000/recommend/full"
+                  break
+                else
+                  echo "⏳ API 응답 대기 중... ($i/12)"
+                  sleep 5
+                fi
+              done
+              
+              # 최종 로그 확인
+              echo "📋 컨테이너 최근 로그:"
+              sudo docker logs --tail 10 perfume-recommender-container
               
             else
               echo "❌ FastAPI 컨테이너 실행 실패!"
-              echo "📋 로그 확인: sudo docker logs perfume-recommender-container"
+              echo "📋 실패 로그:"
+              sudo docker logs perfume-recommender-container || true
               exit 1
             fi
             
-            # 사용하지 않는 이미지 정리
-            echo "🧹 사용하지 않는 Docker 이미지 정리..."
-            sudo docker image prune -f
+            # 최종 시스템 상태 확인
+            echo "💻 배포 후 시스템 상태:"
+            df -h
+            sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
             
-            echo "✅ FastAPI 배포 완료!"
+            echo "✅ PerfumeOnMe FastAPI 배포 완료! (CPU 최적화 버전)"
 
       - name: Remove GitHub IP from Security Group
+        if: always()
         run: |
           aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
