@@ -27,3 +27,8 @@ SBERT_MODEL_NAME = 'paraphrase-multilingual-MiniLM-L12-v2'
 # 📊 TF-IDF 설정
 TFIDF_NGRAM_RANGE = (1, 2)
 TFIDF_MAX_FEATURES = 3000
+
+# 🧠 PBTI 전용 설정
+PBTI_SBERT_MODEL_NAME = 'all-MiniLM-L6-v2'
+PBTI_GPT_MODEL = "gpt-4o"
+PBTI_GPT_TEMPERATURE = 0.7

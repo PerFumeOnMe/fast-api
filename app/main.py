@@ -1,7 +1,7 @@
 # app/main.py
 
 from fastapi import FastAPI
-from app.routers import recommendations
+from app.routers import recommendations, pbti
 
 app = FastAPI(
     title="PerfumeOnMe FAST API",
@@ -11,6 +11,7 @@ app = FastAPI(
 
 # 라우터 등록
 app.include_router(recommendations.router)
+app.include_router(pbti.router)
 
 @app.get("/")
 async def root():
