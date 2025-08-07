@@ -1,11 +1,11 @@
 # recommender_tf_idf.py
 import pandas as pd
-from app.utils import safe_str
+from app.core.utils import safe_str
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from app.utils import load_excel_from_s3
-from app.config import S3_BUCKET, S3_KEY
-from app.config import (
+from app.core.utils import load_excel_from_s3
+from app.core.config import S3_BUCKET, S3_KEY
+from app.core.config import (
     TFIDF_NGRAM_RANGE,
     TFIDF_MAX_FEATURES,
 )

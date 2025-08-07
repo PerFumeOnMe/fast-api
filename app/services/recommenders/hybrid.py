@@ -1,6 +1,6 @@
 # recommender_hybrid.py
-from app.config import DEFAULT_TOP_N, DEFAULT_ALPHA
-from app.utils import safe_str
+from app.core.config import DEFAULT_TOP_N, DEFAULT_ALPHA
+from app.core.utils import safe_str
 
 
 class HybridPerfumeRecommender:

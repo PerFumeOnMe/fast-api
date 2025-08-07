@@ -1,10 +1,10 @@
 # recommender_sbert.py
 import pandas as pd
 import numpy as np
-from app.utils import safe_str, load_excel_from_s3
+from app.core.utils import safe_str, load_excel_from_s3
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from app.config import SBERT_MODEL_NAME, DEFAULT_TOP_N, S3_BUCKET, S3_KEY
+from app.core.config import SBERT_MODEL_NAME, DEFAULT_TOP_N, S3_BUCKET, S3_KEY
 
 
 class SBERTPerfumeRecommender:

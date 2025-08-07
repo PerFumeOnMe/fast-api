@@ -2,11 +2,11 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from app.generator import generate_scenario_sync
-from app.recommender_tf_idf import PerfumeRecommender
-from app.recommender_sbert import SBERTPerfumeRecommender
-from app.recommender_hybrid import HybridPerfumeRecommender
-from app.config import settings
+from app.services.generator import generate_scenario_sync
+from app.services.recommenders.tf_idf import PerfumeRecommender
+from app.services.recommenders.sbert import SBERTPerfumeRecommender
+from app.services.recommenders.hybrid import HybridPerfumeRecommender
+from app.core.config import settings
 
 # 글로벌 객체 초기화 (S3에서 로딩)
 tfidf = PerfumeRecommender()
