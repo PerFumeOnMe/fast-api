@@ -20,6 +20,7 @@ class FragranceRecommendation(BaseModel):
     description: str
     relatedKeywords: List[str]
     imageUrl: str
+    removebgImageUrl: str
 
 class RecommendationResponse(BaseModel):
     scenario: str

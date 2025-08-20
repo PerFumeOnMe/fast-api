@@ -96,7 +96,8 @@ class PerfumeRecommender:
                 "baseNote": safe_str(row.get("베이스 노트 키워드", "")),
                 "description": safe_str(row.get("한줄소개", row.get("향수 키워드", ""))),
                 "relatedKeywords": top_keywords,
-                "imageUrl": safe_str(row.get("향수 이미지", ""))
+                "imageUrl": safe_str(row.get("향수 이미지", "")),
+                "removebgImageUrl": safe_str(row.get("rmbg_s3_url", ""))
                 })
 
         similarity_scores = [cosine_sim[i] for i, _ in sorted_results]
